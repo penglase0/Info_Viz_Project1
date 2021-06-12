@@ -39,6 +39,15 @@ sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
 plt.title('Proportion of Sentiments', fontsize=22)
 plt.show()
 
+# attempt at dashboard https://docs.streamlit.io/en/stable/getting_started.html
+import streamlit as st
+st.write("""
+# Consumer Review Dashboard
+by Courtney Datin and Oliver Penglase
+""")
+
+st.write(sentiment_plot)
+
 
 
 
