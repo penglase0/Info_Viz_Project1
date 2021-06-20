@@ -45,7 +45,7 @@ for i in survey_comments['compound']: # iterate through compound values and assi
 survey_comments['compound_sentiment'] = compound_sentiment # add the defined sentiments to dataframe
 
 # save survey comments as dataframe for dashboard code
-survey_comments.to_csv('survey_sentiments')
+survey_comments.to_csv('survey_sentiments.csv')
 
 #print(survey_comments.head())
 
