@@ -29,6 +29,9 @@ by Courtney Datin and Oliver Penglase
 st.write("""
 ## Lifetime Analysis""")
 
+# aggregate to get % of negative reviews by month for a line graph
+print(survey_comments.head())
+
 
 st.write(""" 
 ## Monthly Analysis""")
@@ -86,5 +89,4 @@ st.bar_chart(sentiment_plot)
 survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
 st.dataframe(data=survey_condensed)
 
-# aggregate to get % of negative reviews by month for a line graph
 
