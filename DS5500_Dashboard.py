@@ -5,38 +5,66 @@
 # import necessary packages
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime as dt
+import streamlit as st
 
 # read sentiment csv file in to a dataframe
-survey_comments = pd.read_csv('survey_sentiments.csv')
+survey_comments = pd.read_csv('final_df.csv')
 
-# attempt at dashboard https://docs.streamlit.io/en/stable/getting_started.html
+# convert StartDate column to be recognized as a date
+survey_comments['StartDate'] = pd.to_datetime(survey_comments['StartDate'])
+
+# create a more generalized date field for digestability of the dashboard
+survey_comments['month'] = survey_comments['StartDate'].dt.strftime('%b %Y')
+
+# Streamlit documentation: https://docs.streamlit.io/en/stable/getting_started.html
+
+# dashboard header and authors
 import streamlit as st
 st.write("""
 # Consumer Review Dashboard
 by Courtney Datin and Oliver Penglase
 """)
 
+# drop down menu to select timeframe for filtering data (still working on filter to change visuals)
+month_list = ['Aug 2018',
+              'Sep 2018',
+              'Oct 2018',
+              'Nov 2018',
+              'Dec 2018',
+              'Jan 2019',
+              'Feb 2019',
+              'Mar 2019',
+              'Apr 2019',
+              'May 2019',
+              'Jun 2019',
+              'Jul 2019',
+              'Aug 2019',
+              'Sep 2019',
+              'Oct 2019',
+              'Nov 2019',
+              'Dec 2019',
+              'Jan 2020',
+              'Feb 2020',
+              'Mar 2020',
+              'Apr 2020',
+              'May 2020',
+              'Jun 2020',
+              'Jul 2020',
+              'Aug 2020',
+              'Sep 2020',
+              'Oct 2020',
+              'Nov 2020',
+              'Dec 2020']
+option = st.sidebar.selectbox('Select a month to filter the Dashboard:', month_list)
+'Month selected: ', option
+
+# bar chart showing all-time number of negative, neutral, and positive reviews
+# aggregate data by sentiment and create a bar chart
 survey_comments['constant'] = 1
 sentiment_plot = survey_comments.groupby(['compound_sentiment']).sum()['constant'].to_frame()
-sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
-plt.title('All Time Review Sentiments', fontsize=22)
-#plt.show()
-
-print(sentiment_plot.head())
-
-
-#sentiment_plot.plot.bar(x='compound_sentiment', height='constant')
-#print(type(survey_comments)) # it's a dataframe
-#comments_sorted = survey_comments.sort_values(['sentiment_scores', 'OpenResponse'], ascending=True)
-#print(comments_sorted.head())
-
-# attempt at dashboard https://docs.streamlit.io/en/stable/getting_started.html
-import streamlit as st
-st.write("""
-# Consumer Review Dashboard
-by Courtney Datin and Oliver Penglase
-""")
-
 st.bar_chart(sentiment_plot)
+
+# remove unnessecary columns and display dataframe
 survey_condensed = survey_comments[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
 st.dataframe(data=survey_condensed)
