@@ -26,6 +26,13 @@ st.write("""
 by Courtney Datin and Oliver Penglase
 """)
 
+st.write("""
+## Lifetime Analysis""")
+
+
+st.write(""" 
+## Monthly Analysis""")
+
 # drop down menu to select timeframe for filtering data
 month_list = ['Aug 2018',
               'Sep 2018',
@@ -57,7 +64,7 @@ month_list = ['Aug 2018',
               'Nov 2020',
               'Dec 2020']
 
-month_year_option = st.sidebar.selectbox('Select a month to filter the Dashboard:', month_list)
+month_year_option = st.selectbox('Select a month to filter the Dashboard:', month_list)
 'Month selected: ', month_year_option
 print(month_year_option)
 print(type(month_year_option))
@@ -78,3 +85,6 @@ st.bar_chart(sentiment_plot)
 # remove unnessecary columns and display dataframe
 survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
 st.dataframe(data=survey_condensed)
+
+# aggregate to get % of negative reviews by month for a line graph
+
