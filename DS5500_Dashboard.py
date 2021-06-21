@@ -26,7 +26,7 @@ st.write("""
 by Courtney Datin and Oliver Penglase
 """)
 
-# drop down menu to select timeframe for filtering data (still working on filter to change visuals)
+# drop down menu to select timeframe for filtering data
 month_list = ['Aug 2018',
               'Sep 2018',
               'Oct 2018',
@@ -56,15 +56,25 @@ month_list = ['Aug 2018',
               'Oct 2020',
               'Nov 2020',
               'Dec 2020']
-option = st.sidebar.selectbox('Select a month to filter the Dashboard:', month_list)
-'Month selected: ', option
+
+month_year_option = st.sidebar.selectbox('Select a month to filter the Dashboard:', month_list)
+'Month selected: ', month_year_option
+print(month_year_option)
+print(type(month_year_option))
+
+test = 'Aug 2018'
+
+date_requirement = survey_comments['month'] == month_year_option
+
+#date_filtered_survey = survey_comments[survey_comments['month'] = month_year_option]
+date_filtered_survey = survey_comments[date_requirement]
 
 # bar chart showing all-time number of negative, neutral, and positive reviews
 # aggregate data by sentiment and create a bar chart
-survey_comments['constant'] = 1
-sentiment_plot = survey_comments.groupby(['compound_sentiment']).sum()['constant'].to_frame()
+date_filtered_survey['constant'] = 1
+sentiment_plot = date_filtered_survey.groupby(['compound_sentiment']).sum()['constant'].to_frame()
 st.bar_chart(sentiment_plot)
 
 # remove unnessecary columns and display dataframe
-survey_condensed = survey_comments[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
+survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
 st.dataframe(data=survey_condensed)
