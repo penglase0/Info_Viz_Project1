@@ -6,18 +6,19 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime as dt
+
+import streamlit
 import streamlit as st
 
 # read sentiment csv file in to a dataframe
 survey_comments = pd.read_csv('final_df.csv')
-#print(survey_comments.head())
 
 # convert StartDate column to be recognized as a date
 survey_comments['StartDate'] = pd.to_datetime(survey_comments['StartDate'])
 
 # create a more generalized date field for digestability of the dashboard
 survey_comments['month'] = survey_comments['StartDate'].dt.strftime('%B %Y')
-#print(survey_comments.head())
+
 # Streamlit documentation: https://docs.streamlit.io/en/stable/getting_started.html
 
 # dashboard header and authors
@@ -34,12 +35,10 @@ st.write("""
 # aggregate to get total reviews by month
 survey_comments['constant'] = 1
 responses_by_month = survey_comments.groupby(['month']).sum()['constant'].to_frame().reset_index()
-#print(responses_by_month.head())
 
 # aggregate to get % positive reviews by month
 positive_condition = survey_comments['compound_sentiment'] == 'positive'
 positive_responses = survey_comments[positive_condition].groupby(['month']).sum()['constant'].to_frame().reset_index()
-#print(positive_responses.head())
 
 # merge dataframes together and calculate percentage
 responses_by_month = pd.merge(responses_by_month, positive_responses, on='month')
@@ -51,16 +50,42 @@ print(responses_by_month.head())
 responses_by_month['month'] = pd.to_datetime(responses_by_month['month'])
 responses_by_month = responses_by_month.sort_values(by='month')
 
-print(responses_by_month.head())
-
-responses_by_month.to_csv('test.csv')
-#responses_by_month.index = monthly_transpose.index.strftime('%m %Y')
-
-
-# graph bar chart
+# graph line graph of the percentage of positive reviews by month
 st.write("Pertentage of Positive Reviews by Month")
 total_time_bar = st.line_chart(responses_by_month[['month', 'percent_positive']].set_index('month'))
 
+
+
+## add horizontal bar chart by topic for user specified month
+# plot pie chart of polarities
+survey_comments['constant'] = 1
+sentiment_plot = survey_comments.groupby(['compound_sentiment']).sum()['constant'].to_frame()
+#sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
+#plt.title('Student Sentiment', fontsize=22)
+
+sentiment_plot = survey_comments.groupby(['compound_sentiment'])["LoggingIn", "AccessPurchase", "PageNumberSearch",
+                                                           "Price", "Navigation", "Products", "CustomerSupport",
+                                                           "OtherDevices", "Technical", "Other"].sum()
+sentiment_plot = sentiment_plot / sentiment_plot.sum()
+sentiment_plot = sentiment_plot.T.sort_values(by=['positive'])
+print(sentiment_plot.head())
+for col in sentiment_plot.columns:
+    print(col)
+
+negative = sentiment_plot['negative'].tolist()
+neutral = sentiment_plot['neutral'].tolist()
+positive = sentiment_plot['positive'].tolist()
+y = sentiment_plot.index.tolist()
+
+fig_all_time = plt.figure()
+plt.barh(y, negative, color = 'red')
+plt.barh(y, neutral, color = 'yellow', left = negative)
+plt.barh(y, positive, color = 'green', left=list(map(lambda neg, neu: neg + neu, negative, neutral)))
+
+st.write("All Time Sentiment Percentage by Topic")
+st.pyplot(fig_all_time)
+
+################################################################################################
 
 st.write(""" 
 ## Monthly Analysis""")
@@ -101,20 +126,52 @@ month_year_option = st.selectbox('Select a month to filter the Dashboard:', mont
 print(month_year_option)
 print(type(month_year_option))
 
-
 date_requirement = survey_comments['month'] == month_year_option
-
-#date_filtered_survey = survey_comments[survey_comments['month'] = month_year_option]
 date_filtered_survey = survey_comments[date_requirement]
 
-# bar chart showing all-time number of negative, neutral, and positive reviews
+
+
+## bar chart showing all-time number of negative, neutral, and positive reviews
 # aggregate data by sentiment and create a bar chart
 date_filtered_survey['constant'] = 1
 sentiment_plot = date_filtered_survey.groupby(['compound_sentiment']).sum()['constant'].to_frame()
 st.write('Month Survey Volume by Sentiment')
 st.bar_chart(sentiment_plot)
 
-# remove unnessecary columns and display dataframe
+
+
+## add horizontal bar chart by topic for user specified month
+# plot pie chart of polarities
+date_filtered_survey['constant'] = 1
+sentiment_plot = date_filtered_survey.groupby(['compound_sentiment']).sum()['constant'].to_frame()
+#sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
+#plt.title('Student Sentiment', fontsize=22)
+
+sentiment_plot = date_filtered_survey.groupby(['compound_sentiment'])["LoggingIn", "AccessPurchase", "PageNumberSearch",
+                                                           "Price", "Navigation", "Products", "CustomerSupport",
+                                                           "OtherDevices", "Technical", "Other"].sum()
+sentiment_plot = sentiment_plot / sentiment_plot.sum()
+sentiment_plot = sentiment_plot.T.sort_values(by=['positive'])
+print(sentiment_plot.head())
+for col in sentiment_plot.columns:
+    print(col)
+
+negative = sentiment_plot['negative'].tolist()
+neutral = sentiment_plot['neutral'].tolist()
+positive = sentiment_plot['positive'].tolist()
+y = sentiment_plot.index.tolist()
+
+fig_monthly_bar = plt.figure()
+plt.barh(y, negative, color = 'red')
+plt.barh(y, neutral, color = 'yellow', left = negative)
+plt.barh(y, positive, color = 'green', left=list(map(lambda neg, neu: neg + neu, negative, neutral)))
+
+st.write("Month Sentiment Percentage by Topic")
+st.pyplot(fig_monthly_bar)
+
+
+
+# remove unnecessary columns and display dataframe
 survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
 st.dataframe(data=survey_condensed)
 
