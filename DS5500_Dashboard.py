@@ -44,7 +44,6 @@ positive_responses = survey_comments[positive_condition].groupby(['month']).sum(
 responses_by_month = pd.merge(responses_by_month, positive_responses, on='month')
 responses_by_month.columns = ['month', 'total_responses', 'positive_responses']
 responses_by_month['percent_positive'] = responses_by_month['positive_responses']/responses_by_month['total_responses']
-print(responses_by_month.head())
 
 # format month column so it's aligned properly in the chart
 responses_by_month['month'] = pd.to_datetime(responses_by_month['month'])
@@ -68,7 +67,6 @@ sentiment_plot = survey_comments.groupby(['compound_sentiment'])["LoggingIn", "A
                                                            "OtherDevices", "Technical", "Other"].sum()
 sentiment_plot = sentiment_plot / sentiment_plot.sum()
 sentiment_plot = sentiment_plot.T.sort_values(by=['positive'])
-print(sentiment_plot.head())
 for col in sentiment_plot.columns:
     print(col)
 
@@ -144,15 +142,13 @@ st.bar_chart(sentiment_plot)
 # plot pie chart of polarities
 date_filtered_survey['constant'] = 1
 sentiment_plot = date_filtered_survey.groupby(['compound_sentiment']).sum()['constant'].to_frame()
-#sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
-#plt.title('Student Sentiment', fontsize=22)
+
 
 sentiment_plot = date_filtered_survey.groupby(['compound_sentiment'])["LoggingIn", "AccessPurchase", "PageNumberSearch",
                                                            "Price", "Navigation", "Products", "CustomerSupport",
                                                            "OtherDevices", "Technical", "Other"].sum()
 sentiment_plot = sentiment_plot / sentiment_plot.sum()
 sentiment_plot = sentiment_plot.T.sort_values(by=['positive'])
-print(sentiment_plot.head())
 for col in sentiment_plot.columns:
     print(col)
 
@@ -170,6 +166,16 @@ st.write("Month Sentiment Percentage by Topic")
 st.pyplot(fig_monthly_bar)
 
 
+
+# pie chart
+pie_chart = date_filtered_survey.groupby(['OverallSatisfaction']).sum()['constant'].to_frame()
+
+labels = pie_chart.index.to_list() # OverallSatisfaction becomes the index after the groupby
+sizes = pie_chart['constant'].to_list()
+pie_fig = plt.figure()
+plt.pie(sizes, labels=labels, autopct='%1.1f%%')
+plt.axis('equal')
+st.pyplot(pie_fig)
 
 # remove unnecessary columns and display dataframe
 survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
