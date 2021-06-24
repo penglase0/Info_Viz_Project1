@@ -184,6 +184,8 @@ st.markdown(sentiment_hbar_topic_title)
 st.pyplot(fig_monthly_bar)
 st.text("")
 st.text("")
+st.text("")
+st.text("")
 
 
 ## pie chart showing breakdown of consumer sentiments
@@ -207,14 +209,6 @@ pie_sentiment_fig = plt.figure()
 plt.pie(values, labels=labels, autopct=make_autopct(values))
 plt.axis('equal')
 
-# create pie chart title and display pie chart to dashboard
-pie_chart_title = '*Proportions of Survey Sentiments*'
-st.markdown(pie_chart_title)
-st.pyplot(pie_sentiment_fig)
-st.text("")
-st.text("")
-
-
 ## pie chart showing breakdown of consumer satisfaction responses
 # group by OverallSatisfaction using the filtered dataframe
 pie_chart_ratings = date_filtered_survey.groupby(['OverallSatisfaction']).sum()['constant'].to_frame()
@@ -228,14 +222,24 @@ pie_fig = plt.figure()
 plt.pie(values, labels=labels, autopct='%1.1f%%')
 plt.axis('equal')
 
-# create pie chart title and display pie chart to dashboard
-pie_chart_title = '*Proportions of Consumer Ratings*'
-st.markdown(pie_chart_title)
-st.pyplot(pie_fig)
+# use the two above pie charts and display them in columns
+col1, col2 = st.beta_columns(2)
+
+with col1:
+    # create pie chart title and display pie chart to dashboard
+    pie_chart_title = '*Proportions of Survey Sentiments*'
+    st.markdown(pie_chart_title)
+    st.pyplot(pie_sentiment_fig)
+
+with col2:
+    # create pie chart title and display pie chart to dashboard
+    pie_chart_title = '*Proportions of Consumer Ratings*'
+    st.markdown(pie_chart_title)
+    st.pyplot(pie_fig)
 st.text("")
 st.text("")
-
-
+st.text("")
+st.text("")
 
 ## remove unnecessary columns and display dataframe
 dataframe_title = '*Data Table with Sentiment Information*'
@@ -243,6 +247,4 @@ st.markdown(dataframe_title)
 survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'compound', 'compound_sentiment']].copy()
 survey_condensed.columns = ['Consumer Satisfaction', 'Consumer Response', 'Sentiment Score', 'Sentiment']
 st.dataframe(data=survey_condensed)
-
-
 
