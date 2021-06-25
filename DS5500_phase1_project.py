@@ -95,7 +95,7 @@ clean_comments = df_filtered['clean']
 # stop_words - list of words to remove 
 # preprocessor - customizable preprocessor function preprocessor = preprocessor (already run)
 vectorizer = CountVectorizer(max_df=0.95, # remove words that appear in 95% of documents
-                                min_df=10, # ignore words in only 10 documents
+                                min_df=5, # ignore words in only 10 documents
                                 ngram_range=(1, 2)) #using a unigram (1,1) or bigram (2,2)
 
 comment_matrix = vectorizer.fit_transform(clean_comments)
@@ -122,11 +122,11 @@ topic_keywords = [['log', 'out', 'log out', 'time', 'out', 'time out', 'logged']
 ['product', 'rental', 'rent', 'print'], #6
 ['customer', 'customer service', 'service', 'support', 'customer support'], #7
 ['app', 'tablet', 'phone', 'mobile', 'ipad'], #8
-['load', 'crash', 'glitchy', 'slow', 'bug', 'flash']] #9
+['load', 'crash', 'glitchy', 'slow', 'bug', 'flash', 'glitch']] #9
 
 #grid search best priors
-alpha = [.001, .01, .1, 1] #distribution over topics
-eta = [.001, .01, .1, 1] # distribution over words
+alpha = [.001, .01, .1] #distribution over topics
+eta = [.001, .01, .1] # distribution over words
 
 seed_topics = {}
 for topic_id, topic in enumerate(topic_keywords):
@@ -134,11 +134,11 @@ for topic_id, topic in enumerate(topic_keywords):
         seed_topics[word_index[word]] = topic_id
 
 # own grid due to guidedlda being icompatible with sklearn (must create own scoring)
-for i in alpha:
-    for j in eta:
-        model = guidedlda.GuidedLDA(n_topics=10, n_iter=1000, alpha = i, eta = j, random_state=1, refresh=100)
-        model.fit(comment_matrix, seed_topics=seed_topics, seed_confidence=0.15)
-        print("\nalpha: ", i, "eta: ", j, "loglikelihood: ", model.loglikelihood(), "\n")
+#for i in alpha:
+#    for j in eta:
+#        model = guidedlda.GuidedLDA(n_topics=10, n_iter=1000, alpha = i, eta = j, random_state=1, refresh=100)
+#        model.fit(comment_matrix, seed_topics=seed_topics, seed_confidence=0.15)
+#        print("\nalpha: ", i, "eta: ", j, "loglikelihood: ", model.loglikelihood(), "\n")
 
 model = guidedlda.GuidedLDA(n_topics=10, n_iter=1000, alpha = .001, eta = .1, random_state=1, refresh=100)
 model.fit(comment_matrix, seed_topics=seed_topics, seed_confidence=0.3)
@@ -165,7 +165,7 @@ for i in range(9):
 # mds='tsne' 
 vis = pyLDAvis.sklearn.prepare(model, comment_matrix, vectorizer, sort_topics=False)
 pyLDAvis.enable_notebook()
-pyLDAvis.save_html(vis, 'lda.html')
+pyLDAvis.save_html(vis, 'lda_new.html')
 
 #%% Final Dataframe
 #make the dataframe with the final comments
@@ -176,7 +176,7 @@ pyLDAvis.save_html(vis, 'lda.html')
 # topic names for columns in dataframe
 topicnames = ["LoggingIn", "AccessPurchase", "PageNumberSearch", 
               "Price", "Navigation", "Products", "CustomerSupport",
-              "OtherDevices", "Technical", "Other"]
+              "OtherDevices", "Technical", "Other(Homework)"]
 
 # Make the pandas dataframe index=docnames
 df_document_topic = pd.DataFrame(np.round(doc_topic, 2), columns=topicnames)
@@ -185,13 +185,12 @@ df_document_topic.sum()/len(df_document_topic)
 #df_document_topic["sum"] = df_document_topic.sum(axis=1)
 df_merged = df_filtered.merge(df_document_topic, how='outer', left_index=True, right_index=True)
 #a = df_merged[df_merged['sum'] == 0]['OpenResponse']
+df_merged['Group Satisfaction'] = df_merged['OverallSatisfaction'].apply(lambda x: "9-10" if x > 8 else("1-5" if x < 6 else "6-8"))
+
 
 #%% Sentiment Analysis
 
 sid = SentimentIntensityAnalyzer()
-
-test = 'this product is amazing and has been very useful'
-print(sid.polarity_scores(test))
 
 # add sentiment scores to dataframe
 df_merged['sentiment_scores'] = df_merged['OpenResponse'].apply(
@@ -213,16 +212,17 @@ for i in df_merged['compound']: # iterate through compound values and assign sen
 
     compound_sentiment.append(temp_sentiment)
 
-df_merged['compound_sentiment'] = compound_sentiment # add the defined sentiments to dataframe
+df_merged['sentiment'] = compound_sentiment # add the defined sentiments to dataframe
 
+survey_condensed = df_merged[['ResponseId', 'StartDate', 'OverallSatisfaction', 
+                                         'OpenResponse','LoggingIn','AccessPurchase', 
+                                         'PageNumberSearch', 'Price', 'Navigation', 'Products',
+                                         'CustomerSupport', 'OtherDevices', 'Technical', 'Other(Homework)',
+                                         'Group Satisfaction', 'sentiment']].copy()
 # save survey comments as dataframe for dashboard code
-df_merged.to_csv('final_df.csv')
+survey_condensed.to_csv('final_df.csv')
 
 #%% Simple Analysis
-
-topicnames = ["LoggingIn", "AccessPurchase", "PageNumberSearch", 
-              "Price", "Navigation", "Products", "CustomerSupport",
-              "OtherDevices", "Technical", "Other"]
 
 # Topic dist by date
 
@@ -231,7 +231,7 @@ topic_date["sum"] = topic_date.sum(axis=1)
 df_new = topic_date.loc[:,topicnames].div(topic_date["sum"], axis=0)
 
 plt.style.use('ggplot')
-ax = df_new.T.plot.barh(rot=0, figsize=(5,10))
+ax = df_new.T.plot.barh(rot=0, figsize=(9,6))
 ax.set_xlabel('Topic Distribution by Year')
 ax.set_title('Percent of Comments in Topic For a Given Year')
 
@@ -242,7 +242,7 @@ topic_sat = [sum(df_merged[i]*df_merged["OverallSatisfaction"])/sum(df_merged[i]
 topic_sat_sorted = zip(topic_sat, topicnames)
 sorted_pairs = sorted(topic_sat_sorted)
 tuples = zip(*sorted_pairs)
-topic_sat, topicnames = [ list(tuple) for tuple in  tuples]
+topic_sat, topicnames = [list(tuple) for tuple in tuples]
 
 y_pos = np.arange(len(topicnames))
 
@@ -263,18 +263,18 @@ for i, v in enumerate(topic_sat):
 
 # plot pie chart of polarities
 df_merged['constant'] = 1
-sentiment_plot = df_merged.groupby(['compound_sentiment']).sum()['constant'].to_frame()
+sentiment_plot = df_merged.groupby(['sentiment']).sum()['constant'].to_frame()
 sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
 plt.title('Student Sentiment', fontsize=22)
 
-sentiment_plot = df_merged.groupby(['compound_sentiment'])["LoggingIn", "AccessPurchase", "PageNumberSearch", 
+sentiment_plot = df_merged.groupby(['sentiment'])["LoggingIn", "AccessPurchase", "PageNumberSearch", 
               "Price", "Navigation", "Products", "CustomerSupport",
-              "OtherDevices", "Technical", "Other"].sum()
+              "OtherDevices", "Technical", "Other(Homework)"].sum()
 sentiment_plot = sentiment_plot/sentiment_plot.sum()
 sentiment_plot = sentiment_plot.T.sort_values(by=['positive'])
 
 ax = sentiment_plot.plot.barh(stacked=True, color={"negative": "red", "neutral": "yellow", "positive": "green"})
-ax.set_xlabel('Percent of Comments in Negative, Neutral, or Positive Sentiment')
+ax.set_xlabel('Percent of Comments with Negative, Neutral, or Positive Sentiment')
 ax.set_title('Sentiment by Topic')
 ax.legend(loc='upper right', framealpha=1.0)
 
