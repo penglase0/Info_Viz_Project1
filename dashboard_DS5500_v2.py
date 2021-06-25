@@ -26,7 +26,7 @@ topicnames = ["LoggingIn", "AccessPurchase", "PageNumberSearch",
               "OtherDevices", "Technical", "Other(Homework)"]
 
 # read sentiment csv file in to a dataframe
-survey_comments = pd.read_csv('final_df.csv')
+survey_comments = pd.read_csv('final_df_v2.csv')
 del survey_comments['Unnamed: 0']
 
 # convert StartDate column to be recognized as a date
