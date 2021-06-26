@@ -145,7 +145,7 @@ st.pyplot(fig3)
 
 # add break line and create header for monthly analysis section
 st.markdown('---')
-monthly_analysis = '<p style="color:Gray; font-size: 30px;"> Lifetime Analysis</p>'
+monthly_analysis = '<p style="color:Gray; font-size: 30px;"> Month Analysis</p>'
 st.markdown(monthly_analysis, unsafe_allow_html=True)
 
 # drop down menu to select timeframe for filtering data
@@ -282,7 +282,9 @@ survey_condensed.columns = ['Consumer Satisfaction', 'Consumer Response', 'Senti
                             'Price', 'Page Numbers', 'Navigation', 'Other Devices']
 st.dataframe(data=survey_condensed)
 
-st.header("pyLDAvis Topic Modeling Visualization")
+st.markdown('---')
+monthly_analysis = '<p style="color:Gray; font-size: 30px;"> pyLDAvis Topic Modeling Visualization</p>'
+st.markdown(monthly_analysis, unsafe_allow_html=True)
 
 HtmlFile = open("lda.html", 'r', encoding='utf-8')
 source_code = HtmlFile.read() 
