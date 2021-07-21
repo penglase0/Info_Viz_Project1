@@ -32,6 +32,15 @@ unavailable_survey_comments['adjusted_rating'] = np.select(conditions, assigned_
 # write dataframe with adjusted rating column to csv
 pos_survey_comments['adjusted_rating'] = pos_survey_comments['positive']
 combined_survey = pos_survey_comments.append(unavailable_survey_comments)
+
+conditions_text = [
+    (combined_survey['adjusted_rating'] == -1),
+    (combined_survey['adjusted_rating'] == 0),
+    (combined_survey['adjusted_rating'] == 1)
+]
+
+assigned_values_text = ['negative', 'neutral', 'positive']
+combined_survey['adjusted_rating_text'] = np.select(conditions_text, assigned_values_text)
 combined_survey.to_csv('Phase2Dataset_v2.csv')
 
 
