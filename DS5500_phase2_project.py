@@ -11,12 +11,13 @@ from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import ShuffleSplit
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.metrics import multilabel_confusion_matrix, ConfusionMatrixDisplay
 from sklearn.svm import LinearSVC
-from sklearn import metrics
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
 import re
 from collections import Counter
 from itertools import chain
@@ -116,14 +117,45 @@ clean_comments = df_filtered['clean']
 split = ShuffleSplit(n_splits=5, test_size=0.2, random_state=1)
 
 for train_index, test_index in split.split(df_filtered):
-    train_set = df_filtered.iloc[train_index]
-    test_set = df_filtered.iloc[test_index]
+    train_set = df_filtered.iloc[train_index].copy()
+    test_set = df_filtered.iloc[test_index].copy()
 
-y_train = train_set.iloc[:, 5:13]
-x_train = train_set['clean']
-y_test = train_set.iloc[:, 5:13]
-x_test= train_set['clean']
+y_train = train_set.iloc[:, 5:13].copy()
+x_train = train_set['clean'].copy()
+y_test = test_set.iloc[:, 5:13].copy()
+x_test= test_set['clean'].copy()
 
+vectorizer = TfidfVectorizer()
+vectorised_train_documents = vectorizer.fit_transform(x_train)
+
+
+model_to_set = OneVsRestClassifier(LinearSVC(random_state=0))
+
+parameters = {
+    "estimator__C": [1,2,4,8,10, 20],
+}
+
+model_tunning = GridSearchCV(model_to_set, param_grid=parameters,
+                             scoring='f1_weighted')
+
+model_tunning.fit(vectorised_train_documents, y_train)
+
+print(model_tunning.best_score_)
+print(model_tunning.best_params_)
+
+model_to_set = OneVsRestClassifier(KNeighborsClassifier())
+
+parameters = {
+    "estimator__n_neighbors": [1,4,8,12,16],
+}
+
+model_tunning = GridSearchCV(model_to_set, param_grid=parameters,
+                             scoring='f1_weighted')
+
+model_tunning.fit(vectorised_train_documents, y_train)
+
+print(model_tunning.best_score_)
+print(model_tunning.best_params_)
 
 pipe_svm = Pipeline([
    ('tfidf', TfidfVectorizer(analyzer='word', 
@@ -131,7 +163,16 @@ pipe_svm = Pipeline([
                                   max_df = 0.95, 
                                   min_df = 10,
                                   preprocessor = preprocessor)),
-    ('clf_svm', OneVsRestClassifier(LinearSVC(random_state=0, C=10))),
+    ('clf_svm', OneVsRestClassifier(LinearSVC(random_state=0, C=1))),
+])
+
+pipe_knn = Pipeline([
+   ('tfidf', TfidfVectorizer(analyzer='word', 
+                                  ngram_range = (1,2), 
+                                  max_df = 0.95, 
+                                  min_df = 10,
+                                  preprocessor = preprocessor)),
+    ('clf_knn', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=3))),
 ])
 
 
@@ -145,7 +186,79 @@ for category in categories:
     # compute the testing accuracy
     prediction = pipe_svm.predict(x_test)
     cat_name_pred = category + "_pred"
-    train_set[cat_name_pred] = prediction
+    test_set.loc[:,cat_name_pred] = prediction
     print('Test accuracy is {}'.format(accuracy_score(y_test[category], prediction)))
+
+for category in categories:
+    print('... Processing {}'.format(category))
+    # train the model using X_dtm & y
+    pipe_knn.fit(x_train, y_train[category])
+    # compute the testing accuracy
+    prediction = pipe_knn.predict(x_test)
+    cat_name_pred = category + "_pred"
+    test_set.loc[:,cat_name_pred] = prediction
+    print('Test accuracy is {}'.format(accuracy_score(y_test[category], prediction)))
+
+#%% Sentiment Analysis
+y_train = train_set.iloc[:, 13:14].copy()
+x_train = train_set['clean'].copy()
+y_test = test_set.iloc[:, 13:14].copy()
+x_test= test_set['clean'].copy()
+
+
+train_set.groupby('adjusted_rating_text').feedback.count().plot.bar(ylim=0)
+plt.show()
+
+
+pipe_svm2 = Pipeline([
+   ('tfidf', TfidfVectorizer(analyzer='word', 
+                                  ngram_range = (1,2), 
+                                  max_df = 0.95, 
+                                  min_df = 10,
+                                  preprocessor = preprocessor)),
+    ('clf_svm', LinearSVC(C=1)),
+])
+
+
+pipe_svm2.fit(x_train, y_train)
+
+y_pred = pipe_svm2.predict(x_test)
+
+print('accuracy %s' % accuracy_score(y_pred, y_test))
+print(classification_report(y_test, y_pred))
+
+pipe_svm2 = Pipeline([
+   ('tfidf', TfidfVectorizer(analyzer='word', 
+                                  ngram_range = (1,2), 
+                                  max_df = 0.95, 
+                                  min_df = 10,
+                                  preprocessor = preprocessor)),
+    ('clf_svm', LinearSVC(C=1)),
+])
+
+
+pipe_svm2.fit(x_train, y_train)
+
+y_pred = pipe_svm2.predict(x_test)
+
+print('accuracy %s' % accuracy_score(y_pred, y_test))
+print(classification_report(y_test, y_pred))
+
+
+pipe_nb2 = Pipeline([
+   ('tfidf', TfidfVectorizer(analyzer='word', 
+                                  ngram_range = (1,2), 
+                                  max_df = 0.95, 
+                                  min_df = 10,
+                                  preprocessor = preprocessor)),
+    ('clf_nb', MultinomialNB()),
+])
+
+pipe_nb2.fit(x_train, y_train)
+
+y_pred = pipe_svm2.predict(x_test)
+
+print('accuracy %s' % accuracy_score(y_pred, y_test))
+print(classification_report(y_test, y_pred))
 
 
