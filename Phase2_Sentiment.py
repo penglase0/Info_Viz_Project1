@@ -2,150 +2,29 @@
 # Course: DS5500 - Information Visualization in Data Science
 # Project Phase 2 - Classification of Student Response Surveys
 
-
-# Process raw data to have more comprehensive sentiment labeling ######################################################
-
 # import necessary packages
 import pandas as pd
 import numpy as np
-
-# read in csv dataset as a dataframe
-survey_comments = pd.read_csv('Phase2Dataset.csv')
-
-pos_survey_comments = survey_comments[survey_comments['positive'] == 1].reset_index(drop=True)
-unavailable_survey_comments = survey_comments[survey_comments['positive'] != 1].reset_index(drop=True)
-
-# create a list of the conditions for the rating column (negative, neutral, positive)
-conditions = [
-    (unavailable_survey_comments['rating'] <= 3),
-    (unavailable_survey_comments['rating'] > 3) & (unavailable_survey_comments['rating'] <=7),
-    (unavailable_survey_comments['rating'] >7)
-]
-
-# create a list of possible values for the rating conditions (negative = -1, neutral = 0, positive = 1)
-assigned_values = [0, .5, 1]
-
-# create a new column for the values
-unavailable_survey_comments['adjusted_rating'] = np.select(conditions, assigned_values)
-
-# write dataframe with adjusted rating column to csv
-pos_survey_comments['adjusted_rating'] = pos_survey_comments['positive']
-combined_survey = pos_survey_comments.append(unavailable_survey_comments)
-
-conditions_text = [
-    (combined_survey['adjusted_rating'] == 0),
-    (combined_survey['adjusted_rating'] == .5),
-    (combined_survey['adjusted_rating'] == 1)
-]
-
-assigned_values_text = ['negative', 'neutral', 'positive']
-combined_survey['adjusted_rating_text'] = np.select(conditions_text, assigned_values_text)
-combined_survey.to_csv('Phase2Dataset_v2.csv')
-
-
-# Process text data ###################################################################################################
-import pandas as pd
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
+import nltk
+from nltk.tokenize import word_tokenize
 from sklearn.model_selection import ShuffleSplit
-import re
-from collections import Counter
-from itertools import chain
 
-# download data
-survey_comments = pd.read_csv('Phase2Dataset_v2.csv')
-survey_comments = survey_comments.iloc[:, 1:]
-
-# df with missing data
-cols = ['features', 'other']
-
-survey_comments_unlabled = survey_comments[survey_comments[cols].isna().any(1)]
-# df with no missing data
-survey_comments = survey_comments[survey_comments[cols].notna().all(1)]
-survey_comments.isna().any()
-# drop columns with feedback thats just NA
-survey_comments = survey_comments.dropna()
-survey_comments.isna().any()
-
-# convert date to datetime object
-survey_comments['RecordedDate'] = pd.to_datetime(survey_comments['RecordedDate'], format='%m/%d/%Y %H:%M')
-survey_comments['Group Satisfaction'] = survey_comments['rating'].apply(
-    lambda x: "9-10" if x > 8 else ("1-5" if x < 6 else "6-8"))
-
-# create comment series and convert to proper data type
-comments = survey_comments['feedback'].values.astype('U')
-
-# inititialize lemmatization
-lemmatizer = WordNetLemmatizer()
+# enable GPU to train model
+import tensorflow as tf
+#sess = tf.Session()
+from tensorflow import keras
+print('Num GPUs Available: ', len(tf.config.list_physical_devices('GPU')))
+gpu_options = tf.compat.v1.GPUOptions(allow_growth=True)
+session = tf.compat.v1.InteractiveSession(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 
 
-# create a function that preprocesses the data
-# note may want to do analysis on all caps comments and exclamation points
-# add stop words
-# create bigrams
-def preprocessor(text):
-    """ Returns clean text from a string (puts in lower case, removes
-        punctuation, removes stop words, removes numbers, and lemmatizes words)
-
-        Parameters
-        ----------
-        text : str
-            text to be cleaned
-    """
-
-    text = text.lower()  # text to lower case
-    text = re.sub(r'\d+', '', text)  # remove numbers (may remove this)
-    text = re.sub(r'\$', ' price ', text)  # may change word
-
-    words = re.split("\\s+", text)  # split text by space before lemmatizer
-    stop_words = list(set(stopwords.words('english')) - {'out', 'off'})  # list of english stopwords from nltk
-    stop_words = stop_words + ['platform', 'publisher', 'book', 'like']  # add two more words
-    words = [w for w in words if w not in stop_words]  # remove stop words
-
-    lemma_words = [lemmatizer.lemmatize(word=word) for word in words]  # lemmatize
-    lemma_words = [w for w in lemma_words if len(w) >= 3]  # remove words of certain length
-
-    clean_text = ' '.join(lemma_words)  # add space between words
-    clean_text = re.sub(r'[^\w\s]', '', clean_text)  # remove punctuation except $
-    clean_text = re.sub(' +', ' ', clean_text)  # remove any additional spaces
-
-    return clean_text
-
-
-# test the preprocessor
-test_string = "this! ma cities$ 5in it is @@@ cc a companies TEST!!@#$%^&*(){}: $1000. heaaasfdfr been had cities"
-#print('HEREEEE: ', preprocessor(test_string))
-
-# run preprocessor for all rows (don't do in vectorizer)
-comments_processed = pd.Series([preprocessor(row) for row in comments])
-
-# remove infrequent words (can change the number but need this for visualization)
-comment_list = comments_processed.str.split().tolist()
-
-# compute global word frequency
-c = Counter(chain.from_iterable(comment_list))
-c.most_common(50)
-
-# filter, join, and re-assign
-survey_comments['clean'] = [' '.join([j for j in i if c[j] > 10]) for i in comment_list]
-
-# remove comments with empty length
-survey_comments['CommentLength'] = survey_comments['clean'].str.len()
-df_filtered = survey_comments[survey_comments['CommentLength'] > 0]
-# reset jndex to sequential numbers
-df_filtered.reset_index(drop=True, inplace=True)
-clean_comments = df_filtered['clean']
-
-print(df_filtered.head())
-
-#df_filtered.to_csv('filtered_phase2.csv')
+# read csv file with cleaned text and numeric sentiment labels
+df_filtered = pd.read_csv('Phase2Dataset_sentiment_3labels.csv')
 
 
 # BERT Sentiment Analysis #############################################################################################
 # https://towardsdatascience.com/lstm-vs-bert-a-step-by-step-guide-for-tweet-sentiment-analysis-ced697948c47
 
-import nltk
-from nltk.tokenize import word_tokenize
 def tokenize_text(text):
     """
     Tokenize the text input using NLTKs word_tokenize()
@@ -155,7 +34,6 @@ def tokenize_text(text):
     return [word for word in word_tokenize(text) if (word.isalpha() == 1)]
 
 tokenized_comments = pd.Series([tokenize_text(row) for row in df_filtered])
-print(tokenized_comments)
 
 from transformers import BertTokenizer, TFBertForSequenceClassification
 from transformers import InputExample, InputFeatures
@@ -170,9 +48,9 @@ import tensorflow as tf
 import pandas as pd
 
 # https://towardsdatascience.com/sentiment-analysis-in-10-minutes-with-bert-and-hugging-face-294e8a04b671
+# actually i think it's this one https://towardsdatascience.com/sentiment-analysis-in-10-minutes-with-bert-and-hugging-face-294e8a04b671
 
-# split the data into a training dataset and a test dataset (MAKE SURE IT'S RANDOMIZED
-# split data into test and training sets. Shuffly because the data is not random
+# split the data into a training dataset and a test dataset, use ShuffleSplit to ensure it's random
 split = ShuffleSplit(n_splits=5, test_size=0.2, random_state=1)
 
 for train_index, test_index in split.split(df_filtered):
@@ -185,7 +63,7 @@ test = test_set[['clean', 'adjusted_rating']].copy()
 
 
 # Convert the two pandas dataframes into suitable objects for the BERT model by using the InputExample function
-# below calls the InputExample funtion
+# below calls the InputExample function
 InputExample(guid=None,
              text_a = "Hello, world",
              text_b = None,
@@ -213,17 +91,14 @@ def convert_data_to_examples(train, test, data_column, label_column):
 
     return train_InputExamples, validation_InputExamples
 
-#train_InputExamples, validation_InputExamples = convert_data_to_examples(train, test, 'clean', 'adjusted_rating')
-
-
 
 def convert_examples_to_tf_dataset(examples, tokenizer, max_length=128):
     """
     tokenizes the survey responses in the InputExample objects
-    :param examples:
-    :param tokenizer:
-    :param max_length:
-    :return:
+    :param examples: text example
+    :param tokenizer: tokenizer (currently using BertTokenizer bert-based-uncased)
+    :param max_length: maximum length of tokens, default is 128
+    :return:  dataset for the model
     """
 
     features = [] # temporary list to hold the InputFeatures
@@ -273,27 +148,30 @@ label_column = 'adjusted_rating'
 
 
 train_InputExamples, validation_InputExamples = convert_data_to_examples(train, test, data_column, label_column)
+print('Finished creating the Input Examples')
 
 train_data = convert_examples_to_tf_dataset(list(train_InputExamples), tokenizer)
 train_data = train_data.shuffle(100).batch(32).repeat(2)
+print('Finished creating the training tf dataset')
 
 validation_data = convert_examples_to_tf_dataset(list(validation_InputExamples), tokenizer)
 validation_data = validation_data.batch(32)
+print('Finished creating the test tf dataset')
 
 
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-08, clipnorm=1.0),
+#model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-08, clipnorm=1.0),
+              #loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              #metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
+
+model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD'),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
-model.fit(train_data, epochs=2, validation_data=validation_data)
+print('Finished compiling the model')
 
+model.fit(train_data, epochs=1, batch_size = 200, validation_data=validation_data)
+print('Finished fitting the model')
 
-
-
-
-
-
-
-
+# Information about Batch & Epochs: https://machinelearningmastery.com/difference-between-a-batch-and-an-epoch/
 
 
