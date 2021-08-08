@@ -19,7 +19,8 @@ session = tf.compat.v1.InteractiveSession(config=tf.compat.v1.ConfigProto(gpu_op
 
 
 # read csv file with cleaned text and numeric sentiment labels
-df_filtered = pd.read_csv('Phase2Dataset_sentiment_3labels.csv')
+#df_filtered = pd.read_csv('Phase2Dataset_sentiment_3labels.csv')
+df_filtered = pd.read_csv('Phase2Dataset_v4.csv')
 
 
 # BERT Sentiment Analysis #############################################################################################
@@ -38,8 +39,20 @@ tokenized_comments = pd.Series([tokenize_text(row) for row in df_filtered])
 from transformers import BertTokenizer, TFBertForSequenceClassification
 from transformers import InputExample, InputFeatures
 
-model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased")
+
+
+model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)
+
+#label_dict = {'negative': 0, 'neutral': 1, 'positive': 2}
+#from transformers import BertForSequenceClassification
+#model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
+#                                                      num_labels=len(label_dict),
+#                                                      output_attentions=False,
+#                                                      output_hidden_states=False)
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+
+
+
 
 # summary of the BERT model
 #model.summary()
@@ -48,7 +61,6 @@ import tensorflow as tf
 import pandas as pd
 
 # https://towardsdatascience.com/sentiment-analysis-in-10-minutes-with-bert-and-hugging-face-294e8a04b671
-# actually i think it's this one https://towardsdatascience.com/sentiment-analysis-in-10-minutes-with-bert-and-hugging-face-294e8a04b671
 
 # split the data into a training dataset and a test dataset, use ShuffleSplit to ensure it's random
 split = ShuffleSplit(n_splits=5, test_size=0.2, random_state=1)
@@ -146,32 +158,90 @@ def convert_examples_to_tf_dataset(examples, tokenizer, max_length=128):
 data_column = 'clean'
 label_column = 'adjusted_rating'
 
-
+# create InputExample objects
 train_InputExamples, validation_InputExamples = convert_data_to_examples(train, test, data_column, label_column)
 print('Finished creating the Input Examples')
 
+# tokenize the InputExample objects for the training data
 train_data = convert_examples_to_tf_dataset(list(train_InputExamples), tokenizer)
 train_data = train_data.shuffle(100).batch(32).repeat(2)
 print('Finished creating the training tf dataset')
 
+# tokenize the InputExample objects for the validation data
 validation_data = convert_examples_to_tf_dataset(list(validation_InputExamples), tokenizer)
 validation_data = validation_data.batch(32)
 print('Finished creating the test tf dataset')
 
-
+# Adam Optimizer - long run time, not used
 #model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-08, clipnorm=1.0),
               #loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               #metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
+# SGD Optimizer - 78% Accuracy
 model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD'),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
+# Adagrad Optimizer - 56% Accuracy
+#model.compile(optimizer=tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_value=0.1, epsilon=1e-0-7 , name='Adagrad'),
+#              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+#              metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
+
+
 print('Finished compiling the model')
 
-model.fit(train_data, epochs=1, batch_size = 200, validation_data=validation_data)
-print('Finished fitting the model')
+model.fit(train_data, epochs=1, batch_size = 500, validation_data=validation_data)
+print('Finished fitting the model with ', 1, ' epochs.')
+
+#for i in range(1, 4):
+#    model.fit(train_data, epochs=i,  validation_data=validation_data)
+#    print('Finished fitting the model with ', i, ' epochs.')
 
 # Information about Batch & Epochs: https://machinelearningmastery.com/difference-between-a-batch-and-an-epoch/
+# Other Optimizers to Do: https://www.tensorflow.org/api_docs/python/tf/keras/optimizers
+# Pros/Cons of Optimizers: https://www.dlology.com/blog/quick-notes-on-how-to-choose-optimizer-in-keras/
+
+# run model for entire dataset
+
+# get the clean comment column and make it a list
+#TF_GPU_ALLOCATOR=cuda_malloc_async
+#response_list = test['clean'].tolist()
+#print(len(response_list))
+
+
+#df_filtered_test = pd.read_csv('Phase2Dataset_sentiment_3labels_trim.csv')
+#response_list = df_filtered_test['clean'].to_list()
+#print(type(response_list))
+
+response_list = ['This was an awesome movie. I watch it twice my time watching this beautiful movie if I have known it was this good',
+                  'One of the worst movies of all time. I cannot believe I wasted two hours of my life for this movie']
+
+
+tf_batch = tokenizer(response_list, max_length=128, padding=True, truncation=True, return_tensors='tf')
+tf_outputs = model(tf_batch)
+tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
+
+labels = ['Negative', 'Neutral', 'Positive']
+label = tf.argmax(tf_predictions, axis=1)
+label = label.numpy()
+for i in range(len(response_list)):
+  print(response_list[i], ": \n", labels[label[i]])
+
+dict = {'response': response_list, 'prediction': labels}
+prediction_output = pd.DataFrame(dict)
+prediction_output.to_csv('prediction_1k.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
