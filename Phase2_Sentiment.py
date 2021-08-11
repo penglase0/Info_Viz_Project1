@@ -26,7 +26,19 @@ df_filtered = pd.read_csv('phase_2_multilabel.csv')
 
 # rename original adjusted_rating column and adjust the one to be used to start at 0
 df_filtered['adjusted_rating1'] = df_filtered['adjusted_rating']
-df_filtered['adjusted_rating'] = df_filtered['adjusted_rating'] + 1
+#df_filtered['adjusted_rating'] = df_filtered['adjusted_rating'] + 1
+
+# change adjusted rating so no values are based on positive column
+def new_rating(row):
+    if (row['rating']<4): # assign 0 to ratings of 0, 1, 2, 3
+        return 0
+    elif (row['rating']>=4 and row['rating']<8):
+        return 1
+    else:
+        return 2
+
+
+df_filtered['adjusted_rating'] = df_filtered.apply(new_rating, axis=1)
 
 
 # BERT Sentiment Analysis #############################################################################################
@@ -179,16 +191,16 @@ print('Finished creating the test tf dataset')
               #loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               #metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
-# SGD Optimizer - 78% Accuracy
+# SGD Optimizer - 63% Accuracy
 # briefly decreased learning rate to 0.00001 (or something smaller like that)
 model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD'),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
-# Adagrad Optimizer - 56% Accuracy
+# Adagrad Optimizer - 23% Accuracy
 #model.compile(optimizer=tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_value=0.1, epsilon=1e-0-7 , name='Adagrad'),
-#              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-#              metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
+              #loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              #metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
 
 print('Finished compiling the model')
@@ -250,18 +262,4 @@ for i in range(len(response_list)):
 dict = {'response': response_list, 'prediction': label}
 prediction_output = pd.DataFrame(dict)
 prediction_output.to_csv('prediction_1k.csv')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
