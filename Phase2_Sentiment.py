@@ -22,11 +22,11 @@ session = tf.compat.v1.InteractiveSession(config=tf.compat.v1.ConfigProto(gpu_op
 #df_filtered = pd.read_csv('Phase2Dataset_sentiment_3labels.csv')
 #df_filtered = pd.read_csv('Phase2Dataset_v4.csv')
 
-df_filtered = pd.read_csv('phase_2_multilabel_v2.csv')
+df_filtered = pd.read_csv('phase_2_multilabel.csv')
+
+# rename original adjusted_rating column and adjust the one to be used to start at 0
 df_filtered['adjusted_rating1'] = df_filtered['adjusted_rating']
-df_filtered['adjusted_rating'] = df_filtered['adjusted_rating'] +1
-
-
+df_filtered['adjusted_rating'] = df_filtered['adjusted_rating'] + 1
 
 
 # BERT Sentiment Analysis #############################################################################################
@@ -54,8 +54,6 @@ from transformers import InputExample, InputFeatures
 #model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased")
 model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-
-
 
 
 # summary of the BERT model
@@ -200,11 +198,11 @@ model.fit(train_data, epochs=1, validation_data=validation_data)
 print('Finished fitting the model with ', 1, ' epochs.')
 
 # save the model
-model.save('sentiment_model')
+#model.save('sentiment_model')
 
 #for i in range(1, 4):
-#    model.fit(train_data, epochs=i,  validation_data=validation_data)
-#    print('Finished fitting the model with ', i, ' epochs.')
+    #model.fit(train_data, epochs=i,  validation_data=validation_data)
+    #print('Finished fitting the model with ', i, ' epochs.')
 
 # Information about Batch & Epochs: https://machinelearningmastery.com/difference-between-a-batch-and-an-epoch/
 # Other Optimizers to Do: https://www.tensorflow.org/api_docs/python/tf/keras/optimizers
