@@ -20,11 +20,16 @@ session = tf.compat.v1.InteractiveSession(config=tf.compat.v1.ConfigProto(gpu_op
 
 # read csv file with cleaned text and numeric sentiment labels
 #df_filtered = pd.read_csv('Phase2Dataset_sentiment_3labels.csv')
-df_filtered = pd.read_csv('Phase2Dataset_v4.csv')
+#df_filtered = pd.read_csv('Phase2Dataset_v4.csv')
+
+df_filtered = pd.read_csv('phase_2_multilabel_v2.csv')
+df_filtered['adjusted_rating1'] = df_filtered['adjusted_rating']
+df_filtered['adjusted_rating'] = df_filtered['adjusted_rating'] +1
+
+
 
 
 # BERT Sentiment Analysis #############################################################################################
-# https://towardsdatascience.com/lstm-vs-bert-a-step-by-step-guide-for-tweet-sentiment-analysis-ced697948c47
 
 def tokenize_text(text):
     """
@@ -41,14 +46,13 @@ from transformers import InputExample, InputFeatures
 
 
 
-model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)
+#model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased",
+#                                                        num_labels=3,
+#                                                        output_attentions=False,
+#                                                        output_hidden_states=False)
 
-#label_dict = {'negative': 0, 'neutral': 1, 'positive': 2}
-#from transformers import BertForSequenceClassification
-#model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
-#                                                      num_labels=len(label_dict),
-#                                                      output_attentions=False,
-#                                                      output_hidden_states=False)
+#model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased")
+model = TFBertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 
@@ -178,6 +182,7 @@ print('Finished creating the test tf dataset')
               #metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
 
 # SGD Optimizer - 78% Accuracy
+# briefly decreased learning rate to 0.00001 (or something smaller like that)
 model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD'),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
@@ -190,8 +195,12 @@ model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0
 
 print('Finished compiling the model')
 
-model.fit(train_data, epochs=1, batch_size = 500, validation_data=validation_data)
+# previously had a batch size of like 500
+model.fit(train_data, epochs=1, validation_data=validation_data)
 print('Finished fitting the model with ', 1, ' epochs.')
+
+# save the model
+model.save('sentiment_model')
 
 #for i in range(1, 4):
 #    model.fit(train_data, epochs=i,  validation_data=validation_data)
@@ -209,25 +218,38 @@ print('Finished fitting the model with ', 1, ' epochs.')
 #print(len(response_list))
 
 
-#df_filtered_test = pd.read_csv('Phase2Dataset_sentiment_3labels_trim.csv')
+#df_filtered_test = pd.read_csv('Phase2Dataset_v4final.csv')
 #response_list = df_filtered_test['clean'].to_list()
 #print(type(response_list))
+#print(response_list.head())
 
 response_list = ['This was an awesome movie. I watch it twice my time watching this beautiful movie if I have known it was this good',
-                  'One of the worst movies of all time. I cannot believe I wasted two hours of my life for this movie']
+                  'One of the worst movies of all time. I cannot believe I wasted two hours of my life for this movie',
+                 'super amazing',
+                 'terrible service, dont recommend this product',
+                 'this is only ok']
+
+#response_list = ['This was an awesome movie. I watch it twice my time watching this beautiful movie if I have known it was this good']
 
 
 tf_batch = tokenizer(response_list, max_length=128, padding=True, truncation=True, return_tensors='tf')
+#probs = model.predict(tf_batch)[0]
+#print(probs)
 tf_outputs = model(tf_batch)
-tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
+print('TF OUTPUTS: \n', tf_outputs)
 
-labels = ['Negative', 'Neutral', 'Positive']
+tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
+print('TF PREDICTIONS: \n', tf_predictions)
+#tf_predictions = tf.nn.sigmoid(tf_outputs[0], axis=1)
+
+labels = ['negative', 'neutral', 'positive']
 label = tf.argmax(tf_predictions, axis=1)
+print('LABEL: \n', tf_predictions)
 label = label.numpy()
 for i in range(len(response_list)):
-  print(response_list[i], ": \n", labels[label[i]])
+  print(response_list[i], ": \n", label[i])
 
-dict = {'response': response_list, 'prediction': labels}
+dict = {'response': response_list, 'prediction': label}
 prediction_output = pd.DataFrame(dict)
 prediction_output.to_csv('prediction_1k.csv')
 
