@@ -20,7 +20,7 @@ import streamlit.components.v1 as components
 st.set_page_config(layout="wide")
 
 # topic names in Dataframe
-topicnames = ["LoggingIn", "AccessPurchase", "PageNumberSearch", 
+topicnames = ["LoggingIn", "AccessPurchase", "PageNumberSearch",
               "Price", "Navigation", "Products", "CustomerSupport",
               "OtherDevices", "Technical", "Other(Homework)"]
 
@@ -60,15 +60,16 @@ positive_responses = survey_comments[positive_condition].groupby(['month']).sum(
 # merge dataframes together and calculate percentage
 responses_by_month = pd.merge(responses_by_month, positive_responses, on='month')
 responses_by_month.columns = ['month', 'total_responses', 'positive_responses']
-responses_by_month['% Positive Sentiment'] = responses_by_month['positive_responses']/responses_by_month['total_responses']
+responses_by_month['% Positive Sentiment'] = responses_by_month['positive_responses'] / responses_by_month[
+    'total_responses']
 
 # format month column so it's aligned properly in the chart
 responses_by_month['month'] = pd.to_datetime(responses_by_month['month'])
 responses_by_month = responses_by_month.sort_values(by='month')
 
 # graph line graph of the percentage of positive reviews by month
-#st.write("Pertentage of Positive Reviews by Month")
-#total_time_bar = st.line_chart(responses_by_month[['month', '% Positive Sentiment']].set_index('month'))
+# st.write("Pertentage of Positive Reviews by Month")
+# total_time_bar = st.line_chart(responses_by_month[['month', '% Positive Sentiment']].set_index('month'))
 
 positive_perc_line_graph = '*Percentage of Positive Reviews by Month*'
 st.markdown(positive_perc_line_graph)
@@ -80,8 +81,8 @@ st.text("")
 # plot pie chart of polarities
 survey_comments['constant'] = 1
 sentiment_plot = survey_comments.groupby(['sentiment']).sum()['constant'].to_frame()
-#sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
-#plt.title('Student Sentiment', fontsize=22)
+# sentiment_plot.plot.pie(y='constant', autopct='%1.1f%%', startangle=90)
+# plt.title('Student Sentiment', fontsize=22)
 
 sentiment_plot = survey_comments.groupby(['sentiment'])[topicnames].sum()
 sentiment_plot = sentiment_plot / sentiment_plot.sum()
@@ -94,10 +95,10 @@ neutral = sentiment_plot['neutral'].tolist()
 positive = sentiment_plot['positive'].tolist()
 y = sentiment_plot.index.tolist()
 
-fig1 = plt.figure(figsize=(9,6))
-plt.barh(y, negative, color = 'red')
-plt.barh(y, neutral, color = 'yellow', left = negative)
-plt.barh(y, positive, color = 'green', left=list(map(lambda neg, neu: neg + neu, negative, neutral)))
+fig1 = plt.figure(figsize=(9, 6))
+plt.barh(y, negative, color='red')
+plt.barh(y, neutral, color='yellow', left=negative)
+plt.barh(y, positive, color='green', left=list(map(lambda neg, neu: neg + neu, negative, neutral)))
 plt.title("All Time Sentiment Percentage by Topic")
 st.pyplot(fig1)
 
@@ -105,12 +106,12 @@ st.pyplot(fig1)
 
 topic_date = survey_comments.groupby(pd.DatetimeIndex(survey_comments['StartDate']).year)[topicnames].sum()
 topic_date["sum"] = topic_date.sum(axis=1)
-df_new = topic_date.loc[:,topicnames].div(topic_date["sum"], axis=0)
+df_new = topic_date.loc[:, topicnames].div(topic_date["sum"], axis=0)
 
 plt.style.use('ggplot')
-fig2, ax = plt.subplots(figsize=(9,6))
-df_new.T.plot.barh(ax =ax, rot=0, figsize=(9,6))
-#ax.plot.barh(df_new.T, rot=0)
+fig2, ax = plt.subplots(figsize=(9, 6))
+df_new.T.plot.barh(ax=ax, rot=0, figsize=(9, 6))
+# ax.plot.barh(df_new.T, rot=0)
 ax.set_xlabel('Topic Distribution by Year')
 ax.set_title('Percent of Comments in Topic For a Given Year')
 
@@ -118,8 +119,9 @@ st.pyplot(fig2)
 
 # Satisfaction by topic
 
-#df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
-topic_sat = [sum(survey_comments[i]*survey_comments["OverallSatisfaction"])/sum(survey_comments[i]) for i in topicnames]
+# df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
+topic_sat = [sum(survey_comments[i] * survey_comments["OverallSatisfaction"]) / sum(survey_comments[i]) for i in
+             topicnames]
 topic_sat_sorted = zip(topic_sat, topicnames)
 sorted_pairs = sorted(topic_sat_sorted)
 tuples = zip(*sorted_pairs)
@@ -128,7 +130,7 @@ topic_sat, topicnames = [list(tuple) for tuple in tuples]
 y_pos = np.arange(len(topicnames))
 
 plt.style.use('ggplot')
-fig3, ax = plt.subplots(figsize=(9,6))
+fig3, ax = plt.subplots(figsize=(9, 6))
 hbars = ax.barh(y_pos, topic_sat)
 ax.set_yticks(y_pos)
 ax.set_yticklabels(topicnames)
@@ -137,7 +139,7 @@ ax.set_xlabel('Average Satisfaction')
 ax.set_title('Average Satisfaction by Topic')
 # Label with specially formatted floats
 for i, v in enumerate(topic_sat):
-    ax.text(v + .05, i + .2, round(v,2), color='blue', fontweight='bold')
+    ax.text(v + .05, i + .2, round(v, 2), color='blue', fontweight='bold')
 
 st.pyplot(fig3)
 ################################################################################################
@@ -181,24 +183,23 @@ month_list = ['August 2018',
               'February 2021',
               'March 2021',
               'April 2021',
-              'May 2021',]
+              'May 2021', ]
 
 month_year_option = st.selectbox('Select a month to filter the Dashboard:', month_list)
-#'Month selected: ', month_year_option
-print(month_year_option)
-print(type(month_year_option))
+# 'Month selected: ', month_year_option
+#print(month_year_option)
+#print(type(month_year_option))
 
 # filter dataframe to satisfy the user selected criterion
 date_requirement = survey_comments['month'] == month_year_option
 date_filtered_survey = survey_comments[date_requirement]
-
 
 ## bar chart showing all-time number of negative, neutral, and positive reviews
 # aggregate data by sentiment and create a bar chart
 date_filtered_survey['constant'] = 1
 sentiment_plot = date_filtered_survey.groupby(['sentiment']).sum()['constant'].to_frame()
 
-fig4, ax = plt.subplots(figsize=(9,6))
+fig4, ax = plt.subplots(figsize=(9, 6))
 sentiment_bar = ax.bar(sentiment_plot.index, sentiment_plot['constant'], color=['red', 'yellow', 'green'])
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -211,10 +212,9 @@ st.pyplot(fig4)
 date_filtered_survey['constant'] = 1
 sentiment_plot = date_filtered_survey.groupby(['sentiment']).sum()['constant'].to_frame()
 
-
 sentiment_plot = date_filtered_survey.groupby(['sentiment'])["LoggingIn", "AccessPurchase", "PageNumberSearch",
-                                                           "Price", "Navigation", "Products", "CustomerSupport",
-                                                           "OtherDevices", "Technical", "Other(Homework)"].sum()
+                                                             "Price", "Navigation", "Products", "CustomerSupport",
+                                                             "OtherDevices", "Technical", "Other(Homework)"].sum()
 sentiment_plot = sentiment_plot / sentiment_plot.sum()
 sentiment_plot = sentiment_plot.T.sort_values(by=['positive'])
 for col in sentiment_plot.columns:
@@ -225,12 +225,12 @@ neutral = sentiment_plot['neutral'].tolist()
 positive = sentiment_plot['positive'].tolist()
 y = sentiment_plot.index.tolist()
 
-fig5 = plt.figure(figsize=(9,6))
-plt.barh(y, negative, color = 'red')
-plt.barh(y, neutral, color = 'yellow', left = negative)
-plt.barh(y, positive, color = 'green', left=list(map(lambda neg, neu: neg + neu, negative, neutral)))
+fig5 = plt.figure(figsize=(9, 6))
+plt.barh(y, negative, color='red')
+plt.barh(y, neutral, color='yellow', left=negative)
+plt.barh(y, positive, color='green', left=list(map(lambda neg, neu: neg + neu, negative, neutral)))
 plt.title("Month Sentiment Percentage by Topic")
-#st.write("Month Sentiment Percentage by Topic")
+# st.write("Month Sentiment Percentage by Topic")
 st.pyplot(fig5)
 
 # pie chart
@@ -238,15 +238,15 @@ st.pyplot(fig5)
 # plot pie chart of polarities
 date_filtered_survey['constant'] = 1
 sentiment_plot = date_filtered_survey.groupby(['sentiment']).sum()['constant'].to_frame()
-labels = sentiment_plot.index.to_list() # OverallSatisfaction becomes the index after the groupby
+labels = sentiment_plot.index.to_list()  # OverallSatisfaction becomes the index after the groupby
 sizes = sentiment_plot['constant'].to_list()
-fig6 = plt.figure(figsize=(9,6))
+fig6 = plt.figure(figsize=(9, 6))
 plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=['red', 'yellow', 'green'])
 
 pie_chart = date_filtered_survey.groupby(['Group Satisfaction']).sum()['constant'].to_frame()
-labels = pie_chart.index.to_list() # OverallSatisfaction becomes the index after the groupby
+labels = pie_chart.index.to_list()  # OverallSatisfaction becomes the index after the groupby
 sizes = pie_chart['constant'].to_list()
-fig7 = plt.figure(figsize=(9,6))
+fig7 = plt.figure(figsize=(9, 6))
 plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=['red', 'yellow', 'green'])
 
 # use the two above pie charts and display them in columns
@@ -275,7 +275,7 @@ with col2:
 # remove unnecessary columns and display dataframe
 dataframe_title = '*Data Table with Sentiment and Topic Information*'
 st.markdown(dataframe_title)
-survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse','sentiment']+topicnames].copy()
+survey_condensed = date_filtered_survey[['OverallSatisfaction', 'OpenResponse', 'sentiment'] + topicnames].copy()
 survey_condensed.columns = ['Consumer Satisfaction', 'Consumer Response', 'Sentiment Score', 'Access/Purchase',
                             'Customer Support', 'Technical', 'Logging in/Timing Out', 'Products', 'Other (Homework)',
                             'Price', 'Page Numbers', 'Navigation', 'Other Devices']
@@ -286,9 +286,11 @@ monthly_analysis = '<p style="color:Gray; font-size: 30px;"> pyLDAvis Topic Mode
 st.markdown(monthly_analysis, unsafe_allow_html=True)
 
 HtmlFile = open("lda.html", 'r', encoding='utf-8')
-source_code = HtmlFile.read() 
-print(source_code)
-components.html(source_code, width = 1500, height = 1000)
+source_code = HtmlFile.read()
+#print(source_code)
+components.html(source_code, width=1500, height=1000)
+
+
 
 
 #############################
@@ -296,12 +298,12 @@ components.html(source_code, width = 1500, height = 1000)
 #############################
 
 
-
 st.markdown('---')
 monthly_analysis = '<p style="color:Gray; font-size: 45px;"> Phase 2 Analysis</p>'
 st.markdown(monthly_analysis, unsafe_allow_html=True)
 
 df_phase_2 = pd.read_csv('phase_2_multilabel.csv')
+df_phase_2_sentiment = pd.read_csv('phase_2_multilabel_final.csv')
 
 topicnames_new = list(df_phase_2.iloc[:, 19:].columns)
 topic_pred = [sum(df_phase_2[i]) for i in topicnames_new]
@@ -311,28 +313,26 @@ topic_sat = [sum(df_phase_2[i]) for i in topicnames_old]
 
 plt.style.use('fivethirtyeight')
 # Figure size
-fig9, ax = plt.subplots(figsize=(12,10))
+fig9, ax = plt.subplots(figsize=(12, 10))
 ind = np.arange(8)
-# Width of a bar 
-width = 0.3       
+# Width of a bar
+width = 0.3
 
 # Plotting
-ax.bar(ind - width/2, topic_sat , width, label='Topic Given')
-ax.bar(ind + width/2, topic_pred, width, label='Topic Predicted')
+ax.bar(ind - width / 2, topic_sat, width, label='Topic Given')
+ax.bar(ind + width / 2, topic_pred, width, label='Topic Predicted')
 
 ax.set_xlabel('Topic')
 ax.set_ylabel('Comment Count')
 ax.set_title('Avg. Satisfaction by Predicted Topic')
-
 
 # xticks()
 # First argument - A list of positions at which ticks should be placed
 # Second argument -  A list of labels to place at the given locations
 ax.set_xticks(ind)
 ax.set_xticklabels(['Ease of Use', 'Content', 'Technical',
-                                'Access', 'Support', 'Features', 'Other',
-                                'Positive'])
-
+                    'Access', 'Support', 'Features', 'Other',
+                    'Positive'])
 
 ax.legend(loc='best')
 
@@ -341,8 +341,8 @@ st.pyplot(fig9)
 
 topicnames = list(df_phase_2.iloc[:, 6:14].columns)
 
-#df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
-topic_sat = [sum(df_phase_2[i]*df_phase_2["rating"])/sum(df_phase_2[i]) for i in topicnames]
+# df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
+topic_sat = [sum(df_phase_2[i] * df_phase_2["rating"]) / sum(df_phase_2[i]) for i in topicnames]
 topic_sat_sorted = zip(topic_sat, topicnames)
 sorted_pairs = sorted(topic_sat_sorted)
 tuples = zip(*sorted_pairs)
@@ -361,13 +361,12 @@ ax.set_xlabel('Average Satisfaction')
 ax.set_title('Avg. Satisfaction by Given Topic')
 # Label with specially formatted floats
 for i, v in enumerate(topic_sat):
-    ax.text(v + .05, i + .2, round(v,2), color='blue', fontweight='bold')
- 
-    
+    ax.text(v + .05, i + .2, round(v, 2), color='blue', fontweight='bold')
+
 topicnames = list(df_phase_2.iloc[:, 19:].columns)
 
-#df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
-topic_sat = [sum(df_phase_2[i]*df_phase_2["rating"])/sum(df_phase_2[i]) for i in topicnames]
+# df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
+topic_sat = [sum(df_phase_2[i] * df_phase_2["rating"]) / sum(df_phase_2[i]) for i in topicnames]
 topic_sat_sorted = zip(topic_sat, topicnames)
 sorted_pairs = sorted(topic_sat_sorted)
 tuples = zip(*sorted_pairs)
@@ -386,8 +385,8 @@ ax.set_xlabel('Average Satisfaction')
 ax.set_title('Avg. Satisfaction by Predicted Topic')
 # Label with specially formatted floats
 for i, v in enumerate(topic_sat):
-    ax.text(v + .05, i + .2, round(v,2), color='blue', fontweight='bold')
- 
+    ax.text(v + .05, i + .2, round(v, 2), color='blue', fontweight='bold')
+
 # use the two above pie charts and display them in columns
 col1, col2 = st.beta_columns(2)
 
@@ -410,4 +409,92 @@ with col2:
     st.text("")
     st.text("")
     st.text("")
+
+
+
+# line graph by month
+
+# convert StartDate column to be recognized as a date
+df_phase_2_sentiment['RecordedDate'] = pd.to_datetime(df_phase_2_sentiment['RecordedDate'])
+
+# create a more generalized date field for digestability of the dashboard
+df_phase_2_sentiment['month'] = df_phase_2_sentiment['RecordedDate'].dt.strftime('%B %Y')
+
+## create line graph of % positive reviews over time
+# aggregate to get total reviews by month
+df_phase_2_sentiment['constant'] = 1
+responses_by_month = df_phase_2_sentiment.groupby(['month']).sum()['constant'].to_frame().reset_index()
+
+# aggregate to get % positive reviews by month
+positive_condition = df_phase_2_sentiment['predicted_label'] == 'positive'
+positive_responses = df_phase_2_sentiment[positive_condition].groupby(['month']).sum()['constant'].to_frame().reset_index()
+
+# merge dataframes together and calculate percentage
+responses_by_month = pd.merge(responses_by_month, positive_responses, on='month')
+responses_by_month.columns = ['month', 'total_responses', 'positive_responses']
+responses_by_month['% Positive Sentiment'] = responses_by_month['positive_responses'] / responses_by_month[
+    'total_responses']
+
+# format month column so it's aligned properly in the chart
+responses_by_month['month'] = pd.to_datetime(responses_by_month['month'])
+responses_by_month = responses_by_month.sort_values(by='month')
+
+# graph line graph of the percentage of positive reviews by month
+# st.write("Pertentage of Positive Reviews by Month")
+# total_time_bar = st.line_chart(responses_by_month[['month', '% Positive Sentiment']].set_index('month'))
+
+positive_perc_line_graph = '*Percentage of Positive Reviews by Month - BERT Model*'
+st.markdown(positive_perc_line_graph)
+total_time_bar = st.line_chart(responses_by_month[['month', '% Positive Sentiment']].set_index('month'))
+st.text("")
+st.text("")
+
+
+
+
+
+
+
+
+
+
+
+# plot pie chart of polarities
+sentiment_plot = df_phase_2_sentiment.groupby(['adjusted_rating_text']).sum()['constant'].to_frame()
+labels = sentiment_plot.index.to_list()  # OverallSatisfaction becomes the index after the groupby
+sizes = sentiment_plot['constant'].to_list()
+fig20 = plt.figure(figsize=(9, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=['red', 'yellow', 'green'])
+
+pie_chart = df_phase_2_sentiment.groupby(['predicted_label']).sum()['constant'].to_frame()
+labels = pie_chart.index.to_list()  # OverallSatisfaction becomes the index after the groupby
+sizes = pie_chart['constant'].to_list()
+fig7 = plt.figure(figsize=(9, 6))
+plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=['red', 'yellow', 'green'])
+
+# use the two above pie charts and display them in columns
+col1, col2 = st.beta_columns(2)
+
+with col1:
+    # create pie chart title and display pie chart to dashboard
+    pie_chart_title = '*Proportions of Assigned Survey Sentiments*'
+    st.markdown(pie_chart_title)
+    st.pyplot(fig6)
+    st.text("")
+    st.text("")
+    st.text("")
+    st.text("")
+
+with col2:
+    # create pie chart title and display pie chart to dashboard
+    pie_chart_title = '*Proportions of Predicted Survey Sentiments*'
+    st.markdown(pie_chart_title)
+    st.pyplot(fig7)
+    st.text("")
+    st.text("")
+    st.text("")
+
+
+
+
 
