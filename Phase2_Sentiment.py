@@ -84,8 +84,8 @@ for train_index, test_index in split.split(df_filtered):
     test_set = df_filtered.iloc[test_index]
 
 # trim the dataset for the only necessary columns, the cleaned survery responses and numeric sentiment (-1, 0, 1)
-train = train_set[['clean', 'adjusted_rating']].copy()
-test = test_set[['clean', 'adjusted_rating']].copy()
+train = train_set[['ResponseID', 'clean', 'adjusted_rating']].copy()
+test = test_set[['ResponseID', 'clean', 'adjusted_rating']].copy()
 
 
 # Convert the two pandas dataframes into suitable objects for the BERT model by using the InputExample function
@@ -224,8 +224,113 @@ print('Finished fitting the model with ', 1, ' epochs.')
 
 # get the clean comment column and make it a list
 #TF_GPU_ALLOCATOR=cuda_malloc_async
-#response_list = test['clean'].tolist()
+#response_list = test['clean'].head(650).tolist()
+#id_list = test['ResponseID'].head(650).tolist()
 #print(len(response_list))
+
+
+
+
+
+# predict full data set 650 rows at a time
+
+response_list = df_filtered['clean'].tolist()
+id_list = df_filtered['ResponseID'].tolist()
+assigned_rating = df_filtered['adjusted_rating']
+
+# create empty lists to append to to output
+all_labels = []
+
+
+start_index = 0
+process_row_length = 500
+count_check = 0
+
+if (start_index + process_row_length < len(response_list)):
+    while (start_index + process_row_length < len(response_list)):
+        end_index = start_index+process_row_length
+
+        print(len(response_list[start_index:end_index]))
+
+        print(count_check)
+        count_check +=1
+        tf_batch = tokenizer(response_list[start_index:end_index],
+                            max_length=128,
+                            padding=True,
+                            truncation=True,
+                            return_tensors='tf')
+        tf_outputs = model(tf_batch)
+        #print('TF OUTPUTS: \n', tf_outputs)
+
+        tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
+        print('TF PREDICTIONS: \n', tf_predictions)
+        # tf_predictions = tf.nn.sigmoid(tf_outputs[0], axis=1)
+
+        label = tf.argmax(tf_predictions, axis=1)
+        print('LABEL: \n', tf_predictions)
+        label = label.numpy()
+        #for i in range(len(response_list)):
+            #print(response_list[i], ": \n", label[i])
+
+        #dict = {'ID': id_list, 'response': response_list, 'prediction': label}
+        #prediction_output = pd.DataFrame(dict)
+        #prediction_output.to_csv('prediction_1k.csv')
+
+        all_labels = np.append(all_labels, label)
+
+        print(count_check)
+        start_index += process_row_length
+    else:
+        end_index = len(response_list)+1
+
+        print(len(response_list[start_index:end_index]))
+
+        print(count_check)
+        count_check += 1
+        tf_batch = tokenizer(response_list[start_index:end_index],
+                             max_length=128,
+                             padding=True,
+                             truncation=True,
+                             return_tensors='tf')
+        tf_outputs = model(tf_batch)
+        # print('TF OUTPUTS: \n', tf_outputs)
+
+        tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
+        print('TF PREDICTIONS: \n', tf_predictions)
+        # tf_predictions = tf.nn.sigmoid(tf_outputs[0], axis=1)
+
+        label = tf.argmax(tf_predictions, axis=1)
+        print('LABEL: \n', tf_predictions)
+        label = label.numpy()
+        # for i in range(len(response_list)):
+        # print(response_list[i], ": \n", label[i])
+
+        # dict = {'ID': id_list, 'response': response_list, 'prediction': label}
+        # prediction_output = pd.DataFrame(dict)
+        # prediction_output.to_csv('prediction_1k.csv')
+
+        all_labels = np.append(all_labels, label)
+
+        print(count_check)
+        start_index += process_row_length
+
+
+#print('id: ', len(id_list))
+#print('response: ', len(response_list))
+#print('predict: ', len(all_labels))
+
+#dict = {'ID': id_list, 'response': response_list, 'prediction': all_labels}
+#rediction_output = pd.DataFrame(dict)
+
+df_filtered['prediction'] = all_labels.tolist()
+df_filtered.to_csv('phase_2_multilabel_final.csv')
+
+
+
+
+
+
+
 
 
 #df_filtered_test = pd.read_csv('Phase2Dataset_v4final.csv')
@@ -233,33 +338,39 @@ print('Finished fitting the model with ', 1, ' epochs.')
 #print(type(response_list))
 #print(response_list.head())
 
-response_list = ['This was an awesome movie. I watch it twice my time watching this beautiful movie if I have known it was this good',
-                  'One of the worst movies of all time. I cannot believe I wasted two hours of my life for this movie',
-                 'super amazing',
-                 'terrible service, dont recommend this product',
-                 'this is only ok']
+#response_list = ['This was an awesome movie. I watch it twice my time watching this beautiful movie if I have known it was this good',
+#                  'One of the worst movies of all time. I cannot believe I wasted two hours of my life for this movie',
+#                 'super amazing',
+#                 'terrible service, dont recommend this product',
+#                 'this is only ok']
 
 #response_list = ['This was an awesome movie. I watch it twice my time watching this beautiful movie if I have known it was this good']
 
 
-tf_batch = tokenizer(response_list, max_length=128, padding=True, truncation=True, return_tensors='tf')
+# Assume that you have 12GB of GPU memory and want to allocate ~4GB:
+#gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.333)
+#session = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+
+
+
+#tf_batch = tokenizer(response_list, max_length=128, padding=True, truncation=True, return_tensors='tf')
 #probs = model.predict(tf_batch)[0]
 #print(probs)
-tf_outputs = model(tf_batch)
-print('TF OUTPUTS: \n', tf_outputs)
+#tf_outputs = model(tf_batch)
+#print('TF OUTPUTS: \n', tf_outputs)
 
-tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
-print('TF PREDICTIONS: \n', tf_predictions)
+#tf_predictions = tf.nn.softmax(tf_outputs[0], axis=1)
+#print('TF PREDICTIONS: \n', tf_predictions)
 #tf_predictions = tf.nn.sigmoid(tf_outputs[0], axis=1)
 
-labels = ['negative', 'neutral', 'positive']
-label = tf.argmax(tf_predictions, axis=1)
-print('LABEL: \n', tf_predictions)
-label = label.numpy()
-for i in range(len(response_list)):
-  print(response_list[i], ": \n", label[i])
+#labels = ['negative', 'neutral', 'positive']
+#label = tf.argmax(tf_predictions, axis=1)
+#print('LABEL: \n', tf_predictions)
+#label = label.numpy()
+#for i in range(len(response_list)):
+#  print(response_list[i], ": \n", label[i])
 
-dict = {'response': response_list, 'prediction': label}
-prediction_output = pd.DataFrame(dict)
-prediction_output.to_csv('prediction_1k.csv')
+#dict = {'ID': id_list, 'response': response_list, 'prediction': label}
+#prediction_output = pd.DataFrame(dict)
+#prediction_output.to_csv('prediction_1k.csv')
 
