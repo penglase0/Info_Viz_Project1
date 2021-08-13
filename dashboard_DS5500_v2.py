@@ -302,16 +302,21 @@ st.markdown('---')
 monthly_analysis = '<p style="color:Gray; font-size: 45px;"> Phase 2 Analysis</p>'
 st.markdown(monthly_analysis, unsafe_allow_html=True)
 
-df_phase_2 = pd.read_csv('phase_2_multilabel.csv')
-df_phase_2_sentiment = pd.read_csv('phase_2_multilabel_final.csv')
-
-topicnames_new = list(df_phase_2.iloc[:, 19:].columns)
-topic_pred = [sum(df_phase_2[i]) for i in topicnames_new]
-
-topicnames_old = list(df_phase_2.iloc[:, 6:14].columns)
-topic_sat = [sum(df_phase_2[i]) for i in topicnames_old]
-
 plt.style.use('fivethirtyeight')
+
+df = pd.read_csv('phase_2_multilabel_final.csv')
+
+
+
+# topic predictions
+topicnames_new = list(df.iloc[:, 20:28].columns)
+topic_pred = [sum(df[i]) for i in topicnames_new]
+
+# topic manual categorization
+topicnames_old = list(df.iloc[:, 7:15].columns)
+topic_sat = [sum(df[i]) for i in topicnames_old]
+
+
 # Figure size
 fig9, ax = plt.subplots(figsize=(12, 10))
 ind = np.arange(8)
@@ -339,11 +344,10 @@ ax.legend(loc='best')
 fig9.tight_layout()
 st.pyplot(fig9)
 
-topicnames = list(df_phase_2.iloc[:, 6:14].columns)
 
 # df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
-topic_sat = [sum(df_phase_2[i] * df_phase_2["rating"]) / sum(df_phase_2[i]) for i in topicnames]
-topic_sat_sorted = zip(topic_sat, topicnames)
+topic_sat = [sum(df[i] * df["rating"]) / sum(df[i]) for i in topicnames_old]
+topic_sat_sorted = zip(topic_sat, topicnames_old)
 sorted_pairs = sorted(topic_sat_sorted)
 tuples = zip(*sorted_pairs)
 topic_sat, topicnames = [list(tuple) for tuple in tuples]
@@ -363,11 +367,10 @@ ax.set_title('Avg. Satisfaction by Given Topic')
 for i, v in enumerate(topic_sat):
     ax.text(v + .05, i + .2, round(v, 2), color='blue', fontweight='bold')
 
-topicnames = list(df_phase_2.iloc[:, 19:].columns)
 
 # df_merged.groupby(['name', 'id', 'dept'])['total_sale'].mean().reset_index()
-topic_sat = [sum(df_phase_2[i] * df_phase_2["rating"]) / sum(df_phase_2[i]) for i in topicnames]
-topic_sat_sorted = zip(topic_sat, topicnames)
+topic_sat = [sum(df[i] * df["rating"]) / sum(df[i]) for i in topicnames_new]
+topic_sat_sorted = zip(topic_sat, topicnames_new)
 sorted_pairs = sorted(topic_sat_sorted)
 tuples = zip(*sorted_pairs)
 topic_sat, topicnames = [list(tuple) for tuple in tuples]
@@ -415,19 +418,19 @@ with col2:
 # line graph by month
 
 # convert StartDate column to be recognized as a date
-df_phase_2_sentiment['RecordedDate'] = pd.to_datetime(df_phase_2_sentiment['RecordedDate'])
+df['RecordedDate'] = pd.to_datetime(df['RecordedDate'])
 
 # create a more generalized date field for digestability of the dashboard
-df_phase_2_sentiment['month'] = df_phase_2_sentiment['RecordedDate'].dt.strftime('%B %Y')
+df['month'] = df['RecordedDate'].dt.strftime('%B %Y')
 
 ## create line graph of % positive reviews over time
 # aggregate to get total reviews by month
-df_phase_2_sentiment['constant'] = 1
-responses_by_month = df_phase_2_sentiment.groupby(['month']).sum()['constant'].to_frame().reset_index()
+df['constant'] = 1
+responses_by_month = df.groupby(['month']).sum()['constant'].to_frame().reset_index()
 
 # aggregate to get % positive reviews by month
-positive_condition = df_phase_2_sentiment['predicted_label'] == 'positive'
-positive_responses = df_phase_2_sentiment[positive_condition].groupby(['month']).sum()['constant'].to_frame().reset_index()
+positive_condition = df['predicted_label'] == 'positive'
+positive_responses = df[positive_condition].groupby(['month']).sum()['constant'].to_frame().reset_index()
 
 # merge dataframes together and calculate percentage
 responses_by_month = pd.merge(responses_by_month, positive_responses, on='month')
@@ -449,24 +452,18 @@ total_time_bar = st.line_chart(responses_by_month[['month', '% Positive Sentimen
 st.text("")
 st.text("")
 
-
-
-
-
-
-
-
-
-
+##############
+# pie charts #
+##############
 
 # plot pie chart of polarities
-sentiment_plot = df_phase_2_sentiment.groupby(['adjusted_rating_text']).sum()['constant'].to_frame()
+sentiment_plot = df.groupby(['adjusted_rating_text']).sum()['constant'].to_frame()
 labels = sentiment_plot.index.to_list()  # OverallSatisfaction becomes the index after the groupby
 sizes = sentiment_plot['constant'].to_list()
 fig20 = plt.figure(figsize=(9, 6))
 plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=['red', 'yellow', 'green'])
 
-pie_chart = df_phase_2_sentiment.groupby(['predicted_label']).sum()['constant'].to_frame()
+pie_chart = df.groupby(['predicted_label']).sum()['constant'].to_frame()
 labels = pie_chart.index.to_list()  # OverallSatisfaction becomes the index after the groupby
 sizes = pie_chart['constant'].to_list()
 fig7 = plt.figure(figsize=(9, 6))
@@ -495,6 +492,35 @@ with col2:
     st.text("")
 
 
+dataframe_title = '*Data Table with Sentiment and Topic Information*'
+st.markdown(dataframe_title)
+survey_condensed = df[['ResponseID', 'platform', 'rating',
+                       'feedback', 'adjusted_rating_text', 'predicted_label',
+                       'ease_of_use', 'ease_of_use_pred',
+                       'content', 'content_pred',
+                       'technical', 'technical_pred',
+                       'access', 'access_pred',
+                       'support', 'support_pred',
+                       'features', 'features_pred',
+                       'other', 'other_pred']].copy()
+survey_condensed.columns = ['ID', 'Platform', 'Consumer Satisfaction',
+                            'Feedback', 'Sentiment', 'Predicted Sentiment',
+                            'Ease of Use', 'Predicted Ease of Use',
+                            'Content', 'Predicted Content',
+                            'Technical', 'Predicted Technical',
+                            'Access', 'Predicted Access',
+                            'Support', 'Predicted Support',
+                            'Features', 'Predicted Features',
+                            'Other', 'Predicted Other']
+
+
+#dtaframe with filter by platform
+platform = survey_condensed['Platform'].unique()
+# filter dataframe to satisfy the user selected criterion
+platform_option = st.selectbox('Select platform to filter the Dashboard:', platform)
+# filter dataframe to satisfy the user selected criterion
+platform_requirement = survey_condensed[survey_condensed['Platform'] == platform_option]
+st.dataframe(data=platform_requirement)
 
 
 
