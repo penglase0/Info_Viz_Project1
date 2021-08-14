@@ -395,7 +395,7 @@ col1, col2 = st.beta_columns(2)
 
 with col1:
     # create pie chart title and display pie chart to dashboard
-    pie_chart_title = '*Avg Rating by Predicted Topics*'
+    pie_chart_title = '*Avg Rating by Given Topics*'
     st.markdown(pie_chart_title)
     st.pyplot(fig7)
     st.text("")
@@ -405,7 +405,7 @@ with col1:
 
 with col2:
     # create pie chart title and display pie chart to dashboard
-    pie_chart_title = '*Avg Rating by Given Topics*'
+    pie_chart_title = '*Avg Rating by Predicted Topics*'
     st.markdown(pie_chart_title)
     st.pyplot(fig8)
     st.text("")
@@ -521,6 +521,3 @@ platform_option = st.selectbox('Select platform to filter the Dashboard:', platf
 # filter dataframe to satisfy the user selected criterion
 platform_requirement = survey_condensed[survey_condensed['Platform'] == platform_option]
 st.dataframe(data=platform_requirement)
-
-
-
